@@ -63,9 +63,9 @@ $body = @{
 Invoke-RestMethod http://127.0.0.1:5001/predict -Method Post -ContentType 'application/json' -Body $body
 ```
 
-## Send random measurements
+## Send CSV-based measurements
 
-With Flask running, use Git Bash to send ten random measurements at one-second intervals:
+With Flask running, use Git Bash to send twenty measurements from the supplied CSV at one-second intervals:
 
 ```bash
 chmod +x send_random_measurements.sh
