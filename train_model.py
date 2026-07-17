@@ -1,4 +1,4 @@
-"""Train and track the predictive-maintenance anomaly model."""
+"""Train the predictive-maintenance anomaly model."""
 
 from __future__ import annotations
 
@@ -6,8 +6,6 @@ import argparse
 from pathlib import Path
 
 import joblib
-import mlflow
-import mlflow.sklearn
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.linear_model import LogisticRegression
@@ -72,22 +70,6 @@ def main() -> None:
     model_path = Path(args.model_path)
     model_path.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump({"model": model, "features": FEATURES, "threshold": args.threshold}, model_path)
-
-    mlflow.set_experiment("factory-anomaly-detection")
-    with mlflow.start_run(run_name="logistic-regression"):
-        mlflow.log_params(
-            {
-                "algorithm": "LogisticRegression",
-                "class_weight": "balanced",
-                "features": ", ".join(FEATURES),
-                "threshold": args.threshold,
-                "train_rows": len(x_train),
-                "test_rows": len(x_test),
-            }
-        )
-        mlflow.log_metrics(metrics)
-        mlflow.log_artifact(str(model_path), artifact_path="model_file")
-        mlflow.sklearn.log_model(model, name="model")
 
     print(f"Model saved to: {model_path}")
     print("Metrics:")

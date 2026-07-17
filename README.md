@@ -7,11 +7,10 @@ This project trains a simple anomaly detection model for factory equipment and e
 ```mermaid
 flowchart LR
     A[CSV historical data] --> B[train_model.py]
-    B --> C[MLflow experiments and model artifacts]
-    B --> D[models/anomaly_model.joblib]
-    E[stream_simulator.py] -->|POST sensor JSON| F[Flask API]
-    D --> F
-    F -->|anomaly score| G[BI dashboard or alerting system]
+  B --> C[models/anomaly_model.joblib]
+  D[send_random_measurements.sh] -->|POST sensor JSON| E[Flask API]
+  C --> E
+  E -->|anomaly score| F[BI dashboard or alerting system]
 ```
 
 The dataset does not contain humidity or sound-volume measurements. The implementation therefore uses available production indicators: air temperature, process temperature, rotational speed, torque, and tool wear. `Machine failure` is the binary anomaly label.
@@ -27,21 +26,13 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-## Train and track the model
+## Train the model
 
 ```powershell
 python train_model.py
 ```
 
-This writes the serving model to `models/anomaly_model.joblib` and logs parameters, metrics, and model artifacts to MLflow's local `mlruns` directory.
-
-Start the MLflow user interface in a separate terminal:
-
-```powershell
-mlflow ui --port 5000
-```
-
-Open `http://127.0.0.1:5000` to inspect the experiment.
+This writes the serving model to `models/anomaly_model.joblib` and prints evaluation metrics to the console.
 
 ## Run the prediction service
 
@@ -72,12 +63,19 @@ $body = @{
 Invoke-RestMethod http://127.0.0.1:5001/predict -Method Post -ContentType 'application/json' -Body $body
 ```
 
-## Simulate the stream
+## Send random measurements
 
-With Flask running, replay ten measurements at one-second intervals:
+With Flask running, use Git Bash to send ten random measurements at one-second intervals:
 
-```powershell
-python stream_simulator.py --limit 10 --interval 1
+```bash
+chmod +x send_random_measurements.sh
+./send_random_measurements.sh
+```
+
+Set `API_URL` or `INTERVAL` to change the prediction endpoint or delay between calls:
+
+```bash
+API_URL=http://127.0.0.1:5001/predict INTERVAL=0.5 ./send_random_measurements.sh
 ```
 
 The API response has an `anomaly_score` between 0 and 1, `is_anomaly`, and the active alert `threshold`. The default threshold is `0.30`, favoring earlier detection of rare failures. Override it at serving time with `ANOMALY_THRESHOLD`, for example `$env:ANOMALY_THRESHOLD = '0.40'`.
